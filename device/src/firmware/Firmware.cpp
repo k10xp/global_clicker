@@ -2,6 +2,7 @@
 #include "config/Pins.h"
 #include "network/MqttManager.h"
 #include <Arduino.h>
+#include <cstring>
 
 
 void Firmware::initialize()
@@ -29,8 +30,43 @@ void Firmware::update()
     if (button.wasClicked())
     {
         Serial.println("Button clicked");
+
         mqtt.publishClick();
     }
 
-    delay(100);
+    if (mqtt.hasReceivedClick())
+    {
+        const char* country = mqtt.getReceivedCountry();
+
+        Serial.print("Lighting country: ");
+        Serial.println(country);
+
+        led.allOff();
+
+        if (strcmp(country, "SE") == 0)
+        {
+            led.greenOn();
+        }
+        else if (strcmp(country, "DE") == 0)
+        {
+            led.redOn();
+        }
+        else if (strcmp(country, "US") == 0)
+        {
+            led.blueOn();
+        }
+
+        ledActive = true;
+        ledOffTime = millis() + 1000;
+    }
+
+    if (ledActive && millis() >= ledOffTime)
+    {
+        led.allOff();
+        ledActive = false;
+
+        Serial.println("LED off");
+    }
+
+    delay(10);
 }

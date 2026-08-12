@@ -6,6 +6,9 @@ class MqttManager{
         void connect();
         void loop();
         void publishClick();
+        
+        const char* getReceivedCountry();
+        bool hasReceivedClick();
     
     private:
         static void mqttCallback(

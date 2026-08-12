@@ -10,6 +10,9 @@
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
 
+bool clickReceived = false;
+char receivedCountry[3] = "";
+
 
 void MqttManager::connect()
 {
@@ -53,11 +56,11 @@ void MqttManager::connect()
 
 
             mqttClient.subscribe(
-                "global/click"
+                "global/command"
             );
 
 
-            Serial.println("Subscribed: global/click");
+            Serial.println("Subscribed: global/command");
 
             return;
         }
@@ -97,7 +100,7 @@ void MqttManager::mqttCallback(
     Serial.print("MQTT message received: ");
     Serial.println(topic);
 
-    if (strcmp(topic, "global/click") != 0)
+    if (strcmp(topic, "global/command") != 0)
     {
         return;
     }
@@ -125,6 +128,11 @@ void MqttManager::mqttCallback(
 
     Serial.print("Click received from: ");
     Serial.println(country);
+
+    strncpy(receivedCountry, country, 2);
+    receivedCountry[2] = '\0';
+
+    clickReceived = true;
 }
 
 void MqttManager::publishClick()
@@ -160,4 +168,21 @@ void MqttManager::publishClick()
     {
         Serial.println("Click publish failed");
     }
+}
+
+bool MqttManager::hasReceivedClick()
+{
+    if (!clickReceived)
+    {
+        return false;
+    }
+
+    clickReceived = false;
+
+    return true;
+}
+
+const char* MqttManager::getReceivedCountry()
+{
+    return receivedCountry;
 }
