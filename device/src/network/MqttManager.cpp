@@ -53,11 +53,11 @@ void MqttManager::connect()
 
 
             mqttClient.subscribe(
-                "global/state"
+                "global/click"
             );
 
 
-            Serial.println("Subscribed: global/state");
+            Serial.println("Subscribed: global/click");
 
             return;
         }
@@ -97,7 +97,7 @@ void MqttManager::mqttCallback(
     Serial.print("MQTT message received: ");
     Serial.println(topic);
 
-    if (strcmp(topic, "global/state") != 0)
+    if (strcmp(topic, "global/click") != 0)
     {
         return;
     }
@@ -116,25 +116,15 @@ void MqttManager::mqttCallback(
 
     const char* type = doc["type"];
 
-    if (strcmp(type, "state") != 0)
+    if (strcmp(type, "click") != 0)
     {
         return;
     }
 
-    int se = doc["SE"] | 0;
-    int de = doc["DE"] | 0;
-    int us = doc["US"] | 0;
+    const char* country = doc["country"];
 
-    Serial.println("State received");
-
-    Serial.print("SE: ");
-    Serial.println(se);
-
-    Serial.print("DE: ");
-    Serial.println(de);
-
-    Serial.print("US: ");
-    Serial.println(us);
+    Serial.print("Click received from: ");
+    Serial.println(country);
 }
 
 void MqttManager::publishClick()
