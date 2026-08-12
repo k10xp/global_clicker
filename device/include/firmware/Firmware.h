@@ -14,4 +14,7 @@ class Firmware {
         MqttManager mqtt;
         Led led;
         Button button;
+
+        unsigned long ledOffTime = 0;
+        bool ledActive = false;
 };
