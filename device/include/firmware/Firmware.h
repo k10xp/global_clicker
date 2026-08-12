@@ -1,6 +1,8 @@
 #pragma once
 #include "network/WifiManager.h"
 #include "network/MqttManager.h"
+#include "device/Led.h"
+#include "device/Button.h"
 
 
 class Firmware {
@@ -10,4 +12,6 @@ class Firmware {
     private:
         WifiManager wifi;
         MqttManager mqtt;
+        Led led;
+        Button button;
 };
