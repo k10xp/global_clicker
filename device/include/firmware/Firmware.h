@@ -1,5 +1,7 @@
 #pragma once
 #include "network/WifiManager.h"
+#include "network/MqttManager.h"
+
 
 class Firmware {
     public:
@@ -7,4 +9,5 @@ class Firmware {
         void update();
     private:
         WifiManager wifi;
+        MqttManager mqtt;
 };

@@ -1,8 +1,10 @@
 #include "firmware/Firmware.h"
 #include "config/Pins.h"
+#include "network/MqttManager.h"
 #include <Arduino.h>
 
 
+MqttManager mqtt;
 
 void Firmware::initialize()
 {
@@ -14,6 +16,7 @@ void Firmware::initialize()
 
 
     wifi.connect();
+    mqtt.connect();
 
     pinMode(RED_LED, OUTPUT);
     pinMode(BLUE_LED, OUTPUT);
@@ -32,9 +35,14 @@ void Firmware::initialize()
 
 void Firmware::update()
 {
+    mqtt.loop();
+    static bool previousPressed = false;
     bool pressed = digitalRead(BUTTON) == LOW;
 
-    if (pressed) {
+    if (pressed && !previousPressed) {
+        mqtt.publishClick();
+
+
         digitalWrite(GREEN_LED, HIGH);
         digitalWrite(RED_LED, LOW);
         digitalWrite(BLUE_LED, LOW);
@@ -48,5 +56,6 @@ void Firmware::update()
         Serial.println("Button released");
     }
 
-    delay(5000);
+    previousPressed = pressed;
+    delay(500);
 }
