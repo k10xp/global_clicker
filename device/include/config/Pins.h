@@ -8,6 +8,10 @@ constexpr int GREEN_LED = 21;
 
 constexpr int BUTTON = 6;
 
+#elif defined(DEVICE_MCU)
+
+constexpr int BUTTON = 5;
+
 #elif defined(DEVICE_C6)
 
 constexpr int BUTTON = 4;
