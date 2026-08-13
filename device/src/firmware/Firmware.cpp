@@ -1,7 +1,8 @@
 #include "firmware/Firmware.h"
 #include "config/Pins.h"
+#include "network/MqttManager.h"
 #include <Arduino.h>
-
+#include <cstring>
 
 
 void Firmware::initialize()
@@ -12,41 +13,60 @@ void Firmware::initialize()
     Serial.println("Device: Clicking Machine");
     Serial.println("------------------------------------");
 
-
     wifi.connect();
+    mqtt.connect();
 
-    pinMode(RED_LED, OUTPUT);
-    pinMode(BLUE_LED, OUTPUT);
-    pinMode(GREEN_LED, OUTPUT);
-
-    pinMode(BUTTON, INPUT_PULLUP);
-
-    digitalWrite(RED_LED, LOW);
-    digitalWrite(BLUE_LED, LOW);
-    digitalWrite(GREEN_LED, LOW);
+    led.initialize();
+    button.initialize();
 
     Serial.println("GlobalClicker device starting!");
-    
 }
 
 
 void Firmware::update()
 {
-    bool pressed = digitalRead(BUTTON) == LOW;
+    mqtt.loop();
 
-    if (pressed) {
-        digitalWrite(GREEN_LED, HIGH);
-        digitalWrite(RED_LED, LOW);
-        digitalWrite(BLUE_LED, LOW);
+    if (button.wasClicked())
+    {
+        Serial.println("Button clicked");
 
-        Serial.println("Button pressed");
-    } else {
-        digitalWrite(GREEN_LED, LOW);
-        digitalWrite(RED_LED, HIGH);
-        digitalWrite(BLUE_LED, HIGH);
-
-        Serial.println("Button released");
+        mqtt.publishClick();
     }
 
-    delay(5000);
+    if (mqtt.hasReceivedClick())
+    {
+        const char* country = mqtt.getReceivedCountry();
+
+        Serial.print("Lighting country: ");
+        Serial.println(country);
+
+        led.allOff();
+
+        if (strcmp(country, "SE") == 0)
+        {
+            led.greenOn();
+        }
+        else if (strcmp(country, "DE") == 0)
+        {
+            led.redOn();
+        }
+        else if (strcmp(country, "US") == 0)
+        {
+            led.blueOn();
+        }
+
+        ledActive = true;
+        ledOffTime = millis() + 1000;
+    }
+
+    if (ledActive && millis() >= ledOffTime)
+    {
+        led.allOff();
+        ledActive = false;
+
+        Serial.println("LED off");
+    }
+
+    delay(10);
 }
