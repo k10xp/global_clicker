@@ -1,6 +1,7 @@
 package com.globalclicker.backend.configs;
 
 import com.globalclicker.backend.model.ClickCommand;
+import com.globalclicker.backend.model.DeviceHeartbeat;
 import com.globalclicker.backend.service.MqttService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -40,7 +41,9 @@ public class MqttInboundConfig {
         MqttPahoMessageDrivenChannelAdapter adapter =
                 new MqttPahoMessageDrivenChannelAdapter(
                         clientId + "-sub", factory,
-                        "global/click");   // topics to subscribe to
+                        "global/click",   // topics to subscribe to
+                        "global/device/+/heartbeat"
+                );
         adapter.setCompletionTimeout(5000);
         adapter.setConverter(new DefaultPahoMessageConverter());
         adapter.setQos(1);
@@ -55,9 +58,25 @@ public class MqttInboundConfig {
             String topic = (String) message.getHeaders().get(MqttHeaders.RECEIVED_TOPIC);
             String payload = message.getPayload().toString();
             try {
-                ClickCommand command = objectMapper.readValue(payload, ClickCommand.class);
-                System.out.println("Received on " + topic + ": " + command.getType());
-                mqttService.lightLed(command.getCountry());
+                if ("global/click".equals(topic)) {
+                    ClickCommand command = objectMapper.readValue(payload, ClickCommand.class);
+                    System.out.println("Received on " + topic + ": " + command.getType());
+                    mqttService.lightLed(command.getCountry());
+
+                    return;
+                }
+                if (topic != null && topic.matches("global/device/[^/]+/heartbeat")) {
+                    String[] topicParts = topic.split("/");
+
+                    String deviceId = topicParts[2];
+                    DeviceHeartbeat heartbeat = objectMapper.readValue(payload, DeviceHeartbeat.class);
+                    mqttService.heartbeat(deviceId, heartbeat);
+
+                    return;
+                }
+
+                System.err.println("Received message on unexpected topic: " + topic);
+
             } catch (Exception e) {
                 System.err.println("Bad payload on " + topic + ": " + payload);
             }
