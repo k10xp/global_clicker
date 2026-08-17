@@ -1,0 +1,80 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-bg-dark: #1c2958;
+  --color-bg-darker: #090a17;
+  --color-blue: #4d8cff;
+  --color-pink: #a78bfa;
+  --color-green: #20d3ee;
+  --color-green-dim: hsl(from var(--color-blue) h 60% 30%);
+  --color-sleep: #b9b9b9;
+  --color-light: #ffffff;
+
+  --font-jersey: 'Jersey 10', sans-serif;
+  --font-ubuntu-mono: 'Ubuntu Mono', monospace;
+
+  --blur-md: 12px;
+  --blur-xl: 24px;
+  --blur-2xl: 40px;
+}
+
+/*
+  Subtle pixel notches — mostly uniform, slight size variance per corner/variant.
+  Glow must use drop-shadow (box-shadow ignores clip-path).
+*/
+@utility pixel-corners-a {
+  clip-path: polygon(
+    0 6px,
+    6px 6px,
+    6px 0,
+    calc(100% - 8px) 0,
+    calc(100% - 8px) 8px,
+    100% 8px,
+    100% calc(100% - 6px),
+    calc(100% - 6px) calc(100% - 6px),
+    calc(100% - 6px) 100%,
+    8px 100%,
+    8px calc(100% - 8px),
+    0 calc(100% - 8px)
+  );
+}
+
+@utility pixel-corners-b {
+  clip-path: polygon(
+    0 8px,
+    8px 8px,
+    8px 0,
+    calc(100% - 6px) 0,
+    calc(100% - 6px) 6px,
+    100% 6px,
+    100% calc(100% - 8px),
+    calc(100% - 8px) calc(100% - 8px),
+    calc(100% - 8px) 100%,
+    6px 100%,
+    6px calc(100% - 6px),
+    0 calc(100% - 6px)
+  );
+}
+
+@utility pixel-corners-c {
+  clip-path: polygon(
+    0 7px,
+    7px 7px,
+    7px 0,
+    calc(100% - 7px) 0,
+    calc(100% - 7px) 7px,
+    100% 7px,
+    100% calc(100% - 9px),
+    calc(100% - 9px) calc(100% - 9px),
+    calc(100% - 9px) 100%,
+    5px 100%,
+    5px calc(100% - 5px),
+    0 calc(100% - 5px)
+  );
+}
+
+@layer base {
+  body {
+    @apply bg-bg-darker text-light antialiased;
+  }
+}
