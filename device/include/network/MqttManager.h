@@ -6,6 +6,7 @@ class MqttManager{
         void connect();
         void loop();
         void publishClick();
+        void publishHB(unsigned long uptime);
         
         const char* getReceivedCountry();
         bool hasReceivedClick();
