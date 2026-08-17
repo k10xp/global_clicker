@@ -9,6 +9,7 @@ class Firmware {
     public:
         void initialize();
         void update();
+        void sendHeartBeat();
     private:
         WifiManager wifi;
         MqttManager mqtt;
@@ -17,4 +18,7 @@ class Firmware {
 
         unsigned long ledOffTime = 0;
         bool ledActive = false;
+        unsigned long uptime = 0;
+        unsigned long startTime;
+        unsigned long lastTimeSentHB;
 };

@@ -170,6 +170,44 @@ void MqttManager::publishClick()
     }
 }
 
+void MqttManager::publishHB(unsigned long uptime)
+{
+    if (!mqttClient.connected())
+    {
+        Serial.println("MQTT not connected, heartbeat not published");
+        return;
+    }
+
+    JsonDocument doc;
+
+    doc["status"] = "online";
+    doc["uptime"] = uptime;
+
+    char topicBuffer[64];
+    sprintf(topicBuffer, "global/device/%s/heartbeat", DEVICE_NAME);
+
+    char buffer[128];
+
+    serializeJson(doc, buffer);
+
+    Serial.print("Publishing: ");
+    Serial.println(buffer);
+
+    bool success = mqttClient.publish(
+        topicBuffer,
+        buffer
+    );
+
+    if (success)
+    {
+        Serial.println("Heartbeat published");
+    }
+    else
+    {
+        Serial.println("Heartbeat publish failed");
+    }
+}
+
 bool MqttManager::hasReceivedClick()
 {
     if (!clickReceived)
