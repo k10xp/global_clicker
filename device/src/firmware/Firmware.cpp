@@ -20,6 +20,9 @@ void Firmware::initialize()
     button.initialize();
 
     Serial.println("GlobalClicker device starting!");
+
+    startTime = millis();
+    lastTimeSentHB = millis();
 }
 
 
@@ -66,6 +69,12 @@ void Firmware::update()
         ledActive = false;
 
         Serial.println("LED off");
+    }
+
+    if(millis() >= lastTimeSentHB + 5000) {
+        lastTimeSentHB = millis();
+        uptime = (millis() - startTime)/1000;
+        mqtt.publishHB(uptime);
     }
 
     delay(10);
