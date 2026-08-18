@@ -111,3 +111,5 @@ application-local.properties
 application-local.yml
 *.env
 .env
+
+*Secrets.h
