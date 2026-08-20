@@ -33,4 +33,8 @@ public class DeviceStatus {
         this.uptime = uptime;
         this.lastHeartbeat = Instant.now();
     }
+
+    public void markOffline() {
+        this.status = "offline";
+    }
 }
