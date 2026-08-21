@@ -59,9 +59,23 @@ public class MqttInboundConfig {
             String payload = message.getPayload().toString();
             try {
                 if ("global/click".equals(topic)) {
-                    ClickCommand command = objectMapper.readValue(payload, ClickCommand.class);
-                    System.out.println("Received on " + topic + ": " + command.getType());
-                    mqttService.lightLed(command.getCountry());
+
+                    ClickCommand command =
+                            objectMapper.readValue(
+                                    payload,
+                                    ClickCommand.class
+                            );
+
+                    System.out.println(
+                            "Received on "
+                                    + topic
+                                    + ": "
+                                    + command.getType()
+                    );
+
+                    mqttService.click(
+                            command.getCountry()
+                    );
 
                     return;
                 }
