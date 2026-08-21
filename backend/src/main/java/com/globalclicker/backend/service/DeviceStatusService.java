@@ -1,6 +1,7 @@
 package com.globalclicker.backend.service;
 
 import com.globalclicker.backend.model.DeviceStatus;
+import com.globalclicker.backend.websocket.WebSocketService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -16,24 +17,24 @@ public class DeviceStatusService {
     private final Map<String, DeviceStatus> devices = new ConcurrentHashMap<>();
 
     public DeviceStatusService() {
-        addDevice("ESP32-NODEMCU");
-        addDevice("ESP32-S3");
+        addDevice("ESP32-NODEMCU", "DE");
+        addDevice("ESP32-S3", "SE");
         //When we know our third device we add it here
     }
 
-    private void addDevice(String deviceId) {
-        DeviceStatus device = new DeviceStatus(deviceId);
+    private void addDevice(String deviceId, String country) {
+        DeviceStatus device = new DeviceStatus(deviceId, country);
         device.markOffline();
         devices.put(deviceId, device);
     }
 
     public void updateHeartbeat(String deviceId, String status, long uptime) {
-        DeviceStatus device =
-                devices.computeIfAbsent(deviceId, id -> {
-                    DeviceStatus newDevice = new DeviceStatus(id);
-                    newDevice.markOffline();
-                    return newDevice;
-                });
+        DeviceStatus device = devices.get(deviceId);
+
+        if (device == null) {
+            System.err.println("Unknown device heartbeat: " + deviceId);
+            return;
+        }
 
         device.update("online", uptime);
 
@@ -41,6 +42,32 @@ public class DeviceStatusService {
                 "Device " + deviceId +
                         " status=online" +
                         " uptime=" + uptime
+        );
+    }
+
+    public void registerClick(String country) {
+
+        for (DeviceStatus device : devices.values()) {
+
+            if (device.getCountry()
+                    .equalsIgnoreCase(country)) {
+
+                device.incrementClicks();
+
+                System.out.println(
+                        "Click registered for "
+                                + country
+                                + ". Total clicks: "
+                                + device.getClicks()
+                );
+
+                return;
+            }
+        }
+
+        System.err.println(
+                "Unknown click country: "
+                        + country
         );
     }
 
