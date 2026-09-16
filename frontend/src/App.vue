@@ -75,7 +75,7 @@
         }"
         @mouseenter="wake(loc.id)"
         @mouseleave="sleep()"
-        @click="toggleLit(loc.id)"
+        @click="sendClick(loc)"
       >
         <span
           aria-hidden="true"
@@ -149,7 +149,7 @@
       <button
         v-for="loc in locations"
         :key="`pod-${loc.id}`"
-        :ref="(el) => setPodRef(loc.id, el)"
+        :ref="getPodRef(loc.id)"
         type="button"
         class="absolute z-10 cursor-pointer bg-transparent p-0 text-left transition-[color,opacity] duration-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
         :class="[toneClass(loc), fadeClass(loc)]"
@@ -162,7 +162,7 @@
         @mouseleave="sleep()"
         @focus="wake(loc.id)"
         @blur="sleep()"
-        @click="toggleLit(loc.id)"
+        @click="sendClick(loc)"
       >
         <span
           aria-hidden="true"
@@ -210,10 +210,12 @@ import globalMapSvg from './assets/global.svg?raw'
 
 const stageEl = ref(null)
 const podEls = {}
+const podRefCallbacks = {}
 const pads = reactive({})
 const LINE_STROKE = 4.5
 
 const hoveredId = ref(null)
+const connectionState = ref('connecting')
 const lit = reactive({})
 const clickCounts = reactive({
   us: 0,
@@ -223,9 +225,26 @@ const clickCounts = reactive({
 const litTimers = {}
 let sleepTimer
 let resizeObserver
+let websocket
+let reconnectTimer
+let allowReconnect = true
+let hasReceivedState = false
+
+const websocketUrl =
+  import.meta.env.VITE_WEBSOCKET_URL ||
+  `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:8080/ws`
+
+function getPodRef(id) {
+  if (!podRefCallbacks[id]) {
+    podRefCallbacks[id] = (el) => setPodRef(id, el)
+  }
+  return podRefCallbacks[id]
+}
 
 function setPodRef(id, el) {
   if (el) {
+    if (podEls[id] === el) return
+    if (podEls[id]) resizeObserver?.unobserve(podEls[id])
     podEls[id] = el
     resizeObserver?.observe(el)
   } else if (podEls[id]) {
@@ -245,9 +264,12 @@ function measurePads() {
     const el = podEls[loc.id]
     if (!el) continue
     const { width, height } = el.getBoundingClientRect()
-    pads[loc.id] = {
-      x: (width / 2 / sw) * 100,
-      y: (height / 2 / sh) * 100,
+    const x = (width / 2 / sw) * 100
+    const y = (height / 2 / sh) * 100
+    const previous = pads[loc.id]
+
+    if (!previous || previous.x !== x || previous.y !== y) {
+      pads[loc.id] = { x, y }
     }
   }
 }
@@ -264,13 +286,75 @@ function sleep() {
   }, 40)
 }
 
-function toggleLit(id) {
-  clickCounts[id] += 1
+function flash(id) {
   lit[id] = true
   clearTimeout(litTimers[id])
   litTimers[id] = setTimeout(() => {
     lit[id] = false
   }, 5000)
+}
+
+function sendClick(loc) {
+  if (websocket?.readyState !== WebSocket.OPEN) {
+    console.warn('Cannot send click: backend WebSocket is not connected')
+    return
+  }
+
+  websocket.send(
+    JSON.stringify({
+      type: 'CLICK',
+      country: loc.code,
+    }),
+  )
+}
+
+function applyState(message) {
+  if (message.type !== 'STATE' || !message.devices) return
+
+  for (const loc of locations) {
+    if (!loc.deviceId) continue
+
+    const nextCount = Number(message.devices[loc.deviceId]?.clicks ?? 0)
+    if (hasReceivedState && nextCount > clickCounts[loc.id]) flash(loc.id)
+    clickCounts[loc.id] = nextCount
+  }
+
+  hasReceivedState = true
+}
+
+function connectWebSocket() {
+  clearTimeout(reconnectTimer)
+  connectionState.value = 'connecting'
+
+  const socket = new WebSocket(websocketUrl)
+  websocket = socket
+
+  socket.addEventListener('open', () => {
+    if (websocket === socket) connectionState.value = 'connected'
+  })
+
+  socket.addEventListener('message', (event) => {
+    try {
+      applyState(JSON.parse(event.data))
+    } catch (error) {
+      console.warn('Ignoring invalid backend WebSocket message', error)
+    }
+  })
+
+  socket.addEventListener('error', () => {
+    if (websocket === socket) connectionState.value = 'disconnected'
+  })
+
+  socket.addEventListener('close', () => {
+    if (websocket !== socket) return
+
+    connectionState.value = 'disconnected'
+    websocket = undefined
+
+    if (allowReconnect) {
+      reconnectTimer = setTimeout(connectWebSocket, 2000)
+    }
+  })
 }
 
 function isAwake(loc) {
@@ -289,8 +373,10 @@ function fadeClass(loc) {
 const locations = [
   {
     id: 'us',
+    code: 'US',
+    deviceId: null,
     country: 'United States',
-    city: 'Los Angeles',
+    city: 'New York',
     color: 'green',
     corners: 'pixel-corners-a',
     target: { x: 24, y: 40 },
@@ -298,6 +384,8 @@ const locations = [
   },
   {
     id: 'se',
+    code: 'SE',
+    deviceId: 'ESP32-S3',
     country: 'Sweden',
     city: 'Stockholm',
     color: 'blue',
@@ -307,6 +395,8 @@ const locations = [
   },
   {
     id: 'de',
+    code: 'DE',
+    deviceId: 'ESP32-NODEMCU',
     country: 'Germany',
     city: 'Berlin',
     color: 'pink',
@@ -355,6 +445,7 @@ function linePoints(loc) {
 }
 
 onMounted(() => {
+  connectWebSocket()
   resizeObserver = new ResizeObserver(measurePads)
   if (stageEl.value) resizeObserver.observe(stageEl.value)
   for (const el of Object.values(podEls)) resizeObserver.observe(el)
@@ -362,6 +453,9 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  allowReconnect = false
+  clearTimeout(reconnectTimer)
+  websocket?.close()
   resizeObserver?.disconnect()
 })
 
