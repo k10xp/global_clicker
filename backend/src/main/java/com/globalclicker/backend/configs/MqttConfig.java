@@ -10,7 +10,7 @@ import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
 @Configuration
 public class MqttConfig {
 
-    @Value("${mqtt.broker-url}")
+    @Value("${mqtt.broker.url}")
     private String brokerUrl;
     @Value("${mqtt.username}")
     private String username;
