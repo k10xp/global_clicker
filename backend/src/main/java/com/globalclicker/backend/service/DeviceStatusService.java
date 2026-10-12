@@ -17,12 +17,12 @@ public class DeviceStatusService {
     private final Map<String, DeviceStatus> devices = new ConcurrentHashMap<>();
 
     public DeviceStatusService() {
-        addDevice("ESP32-NODEMCU", "DE");
-        addDevice("ESP32-S3", "SE");
+        //addDevice("ESP32-NODEMCU", "DE");
+        //addDevice("ESP32-S3", "SE");
         //When we know our third device we add it here
     }
 
-    private void addDevice(String deviceId, String country) {
+    public void addDevice(String deviceId, String country) {
         DeviceStatus device = new DeviceStatus(deviceId, country);
         device.markOffline();
         devices.put(deviceId, device);
@@ -39,7 +39,7 @@ public class DeviceStatusService {
         device.update("online", uptime);
 
         System.out.println(
-                "Device " + deviceId +
+                "Device " + device.getCountry() + "-" + deviceId +
                         " status=online" +
                         " uptime=" + uptime
         );
@@ -97,6 +97,10 @@ public class DeviceStatusService {
                 );
             }
         }
+    }
+
+    public void registerDevice(String deviceId, String country) {
+        addDevice(deviceId, country);
     }
 
     public DeviceStatus getDevice(String deviceId) {

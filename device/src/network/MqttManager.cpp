@@ -12,6 +12,14 @@ PubSubClient mqttClient(wifiClient);
 
 bool clickReceived = false;
 char receivedCountry[3] = "";
+char myDeviceId[13];
+
+void getDeviceId(char* id) {
+    uint8_t mac[6];
+    esp_read_mac(mac, ESP_MAC_WIFI_STA);
+    snprintf(id, 13, "%02x%02x%02x%02x%02x%02x",
+            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
 
 
 void MqttManager::connect()
@@ -43,13 +51,12 @@ void MqttManager::connect()
 
     int attempts = 0;
 
+    getDeviceId(myDeviceId);
 
     while(!mqttClient.connected() && attempts < 10)
     {
-        Serial.print(".");
 
-
-        if(mqttClient.connect(DEVICE_ID))
+        if(mqttClient.connect(myDeviceId, MQTT_USER, MQTT_PASS))
         {
             Serial.println(".");
             Serial.println("MQTT connected");
@@ -58,6 +65,37 @@ void MqttManager::connect()
             mqttClient.subscribe(
                 "global/command"
             );
+
+
+            // after connecting to the mqqt broker,
+            // an esp32 publishes to global/join to
+            // let the backend know a device has joined
+            // so that the backend can save this device
+            // to the HashMap of devices 
+            {
+                JsonDocument doc;
+
+                doc["id"] = myDeviceId;
+                doc["country"] = DEVICE_COUNTRY;
+
+                char buffer[128];
+
+                serializeJson(doc, buffer);
+
+                bool success = mqttClient.publish(
+                    "global/join", buffer
+                );
+
+                if (success)
+                {
+                    Serial.println("Join request sent");
+                }
+                else
+                {
+                    Serial.println("Join request failed");
+                }
+            }
+            
 
 
             Serial.println("Subscribed: global/command");
@@ -184,7 +222,7 @@ void MqttManager::publishHB(unsigned long uptime)
     doc["uptime"] = uptime;
 
     char topicBuffer[64];
-    sprintf(topicBuffer, "global/device/%s/heartbeat", DEVICE_NAME);
+    sprintf(topicBuffer, "global/device/%s/heartbeat", myDeviceId);
 
     char buffer[128];
 
