@@ -20,7 +20,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
             WebSocketHandlerRegistry registry
     ) {
         registry.addHandler(deviceWebSocketHandler, "/ws")
-                .setAllowedOrigins("*")
-                .withSockJS();
+                .setAllowedOrigins("*");
     }
 }
