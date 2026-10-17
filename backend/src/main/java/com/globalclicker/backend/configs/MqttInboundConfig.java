@@ -104,6 +104,11 @@ public class MqttInboundConfig {
                             request.getCountry()
                     );
 
+                    mqttService.registerDevice(
+                            request.getCountry(),
+                            request.getId()
+                    );
+
                     System.out.println(
                             "New device joined: " + request.getCountry()
                                     + "-" + request.getId()

@@ -44,6 +44,39 @@ public class WebSocketService {
         }
     }
 
+    public void broadcastRegister(String country, String id) {
+        for (WebSocketSession session : sessions.values()) {
+            registerDevice(session, country, id);
+        }
+    }
+
+    public void registerDevice(WebSocketSession session, String country, String id) {
+
+        if (!session.isOpen()) {
+            removeSession(session);
+            return;
+        }
+
+        try {
+            RegisterDeviceMessage register = new RegisterDeviceMessage("REGISTER", country, id);
+
+            String json = objectMapper.writeValueAsString(register);
+
+            synchronized (session) {
+                session.sendMessage(new TextMessage(json));
+            }
+
+        } catch (IOException e) {
+            System.err.println(
+                    "Failed to register the device in the FE: "
+                            + e.getMessage()
+            );
+
+            removeSession(session);
+        }
+
+    }
+
     private void sendState(WebSocketSession session) {
 
         if (!session.isOpen()) {
@@ -96,6 +129,12 @@ public class WebSocketService {
     public record StateMessage(
             String type,
             Map<String, DeviceStateMessage> devices
+    ) {}
+
+    public record RegisterDeviceMessage(
+            String type,
+            String country,
+            String id
     ) {}
 
     public record DeviceStateMessage(
