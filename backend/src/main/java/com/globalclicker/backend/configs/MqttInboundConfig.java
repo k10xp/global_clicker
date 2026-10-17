@@ -2,6 +2,8 @@ package com.globalclicker.backend.configs;
 
 import com.globalclicker.backend.model.ClickCommand;
 import com.globalclicker.backend.model.DeviceHeartbeat;
+import com.globalclicker.backend.model.JoinRequest;
+import com.globalclicker.backend.service.DeviceStatusService;
 import com.globalclicker.backend.service.MqttService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -24,11 +26,13 @@ public class MqttInboundConfig {
     private String clientId;
 
     private MqttService mqttService;
+    private DeviceStatusService deviceStatusService;
     private final ObjectMapper objectMapper;
 
-    public MqttInboundConfig(MqttService mqttService, ObjectMapper objectMapper) {
+    public MqttInboundConfig(MqttService mqttService, ObjectMapper objectMapper, DeviceStatusService deviceStatusService) {
         this.mqttService = mqttService;
         this.objectMapper = objectMapper;
+        this.deviceStatusService = deviceStatusService;
     }
 
     @Bean
@@ -42,7 +46,9 @@ public class MqttInboundConfig {
                 new MqttPahoMessageDrivenChannelAdapter(
                         clientId + "-sub", factory,
                         "global/click",   // topics to subscribe to
-                        "global/device/+/heartbeat"
+                        "global/device/+/heartbeat",
+                        "global/join"           // topic when a new device joins.
+                                                // Needed to add device to the map
                 );
         adapter.setCompletionTimeout(5000);
         adapter.setConverter(new DefaultPahoMessageConverter());
@@ -79,13 +85,34 @@ public class MqttInboundConfig {
 
                     return;
                 }
-                if (topic != null && topic.matches("global/device/[^/]+/heartbeat")) {
+                else if (topic != null && topic.matches("global/device/[^/]+/heartbeat")) {
                     String[] topicParts = topic.split("/");
 
                     String deviceId = topicParts[2];
                     DeviceHeartbeat heartbeat = objectMapper.readValue(payload, DeviceHeartbeat.class);
                     mqttService.heartbeat(deviceId, heartbeat);
 
+                    return;
+                }
+                else if ("global/join".equals(topic)) {
+                    JoinRequest request = objectMapper.readValue(
+                            payload, JoinRequest.class
+                    );
+
+                    deviceStatusService.addDevice(
+                            request.getId(),
+                            request.getCountry()
+                    );
+
+                    mqttService.registerDevice(
+                            request.getCountry(),
+                            request.getId()
+                    );
+
+                    System.out.println(
+                            "New device joined: " + request.getCountry()
+                                    + "-" + request.getId()
+                    );
                     return;
                 }
 

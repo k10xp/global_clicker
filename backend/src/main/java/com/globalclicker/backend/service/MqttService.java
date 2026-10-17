@@ -42,4 +42,7 @@ public class MqttService {
         webSocketService.broadcastState();
     }
 
+    public void registerDevice(String country, String id) {
+        webSocketService.broadcastRegister(country, id);
+    }
 }

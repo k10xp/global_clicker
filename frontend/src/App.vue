@@ -232,7 +232,7 @@ let hasReceivedState = false
 
 const websocketUrl =
   import.meta.env.VITE_WEBSOCKET_URL ||
-  `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:8080/ws`
+  `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
 
 function getPodRef(id) {
   if (!podRefCallbacks[id]) {
@@ -309,12 +309,19 @@ function sendClick(loc) {
 }
 
 function applyState(message) {
+  if (message.type === "REGISTER") { // Register request  - register a device by adding its id to the list
+    for (const loc of locations) {
+      // add an id to the corresponding list
+      if (message.country.toLowerCase() === loc.code.toLowerCase()) loc.deviceIds.push(message.id);
+      else continue;
+    }
+  }
   if (message.type !== 'STATE' || !message.devices) return
 
   for (const loc of locations) {
-    if (!loc.deviceId) continue
+    //if (!loc.deviceIds) continue
 
-    const nextCount = Number(message.devices[loc.deviceId]?.clicks ?? 0)
+    const nextCount = Number(message.devices[loc.deviceIds[0]]?.clicks ?? 0)
     if (hasReceivedState && nextCount > clickCounts[loc.id]) flash(loc.id)
     clickCounts[loc.id] = nextCount
   }
@@ -374,7 +381,7 @@ const locations = [
   {
     id: 'us',
     code: 'US',
-    deviceId: null,
+    deviceIds: [],
     country: 'United States',
     city: 'New York',
     color: 'green',
@@ -385,7 +392,7 @@ const locations = [
   {
     id: 'se',
     code: 'SE',
-    deviceId: 'ESP32-S3',
+    deviceIds: [],
     country: 'Sweden',
     city: 'Stockholm',
     color: 'blue',
@@ -396,7 +403,7 @@ const locations = [
   {
     id: 'de',
     code: 'DE',
-    deviceId: 'ESP32-NODEMCU',
+    deviceIds: [],
     country: 'Germany',
     city: 'Berlin',
     color: 'pink',
