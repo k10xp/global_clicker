@@ -1,0 +1,22 @@
+# Build output (rebuilt inside the image)
+target/
+
+# Secrets / environment config (passed at runtime via env_file)
+.env
+.env.*
+
+# IDE and OS files
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Version control and Docker files
+.git/
+.gitignore
+Dockerfile
+.dockerignore
+
+# Logs
+*.log
+logs/

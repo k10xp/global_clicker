@@ -1,0 +1,18 @@
+# Dependencies and build output (recreated inside the image)
+node_modules/
+dist/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+
+# Version control and Docker files
+.git/
+.gitignore
+Dockerfile
+.dockerignore
+
+# Logs
+npm-debug.log*
+*.log
